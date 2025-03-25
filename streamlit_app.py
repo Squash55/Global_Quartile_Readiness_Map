@@ -8,7 +8,7 @@ st.set_page_config(page_title="Global Readiness Map (Scaled Radius)", layout="wi
 @st.cache_data
 def load_data():
     df = pd.read_csv("USAF_Global_125_Bases.csv")
-    df["adjusted_radius"] = 60000 / (1 + (df["Latitude"].abs() - 40) * 0.05)
+    df["adjusted_radius"] = 40000 * (1 + ((90 - df["Latitude"].abs()) / 90))
     return df
 
 df = load_data()
