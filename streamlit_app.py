@@ -45,8 +45,8 @@ layer = pdk.Layer(
 view_state = pdk.ViewState(
     latitude=df["Latitude"].mean(),
     longitude=df["Longitude"].mean(),
-    zoom=1.3,
-    pitch=30,
+    zoom=1,
+    pitch=0,
 )
 
 st.pydeck_chart(pdk.Deck(
