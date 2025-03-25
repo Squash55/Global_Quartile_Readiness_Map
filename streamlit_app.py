@@ -1,18 +1,20 @@
-
+a
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
 
-st.set_page_config(page_title="Global Readiness Map by Quartile (Artificial data)", layout="wide")
+st.set_page_config(page_title="Global Readiness Map (Scaled Radius)", layout="wide")
 
 @st.cache_data
 def load_data():
-    return pd.read_csv("USAF_Global_125_Bases.csv")
+    df = pd.read_csv("USAF_Balanced_Global_125.csv")
+    df["adjusted_radius"] = 60000 / (1 + (df["Latitude"].abs() - 40) * 0.05)
+    return df
 
 df = load_data()
 
-st.title("🌍 Global Mission Readiness Map by Quartile (Artificial data)")
-st.markdown("Explore 125 Air Force bases worldwide, color-coded by readiness quartile.")
+st.title("🌍 Global Mission Readiness Map (Scaled Radius)")
+st.markdown("Circle size is adjusted based on latitude to reduce visual distortion near poles.")
 
 # Compute quartiles
 q1 = df["Readiness"].quantile(0.25)
@@ -31,21 +33,20 @@ def assign_color(readiness):
 
 df["color"] = df["Readiness"].apply(assign_color)
 
-# Map layer
+# Map layer with scaled radius
 layer = pdk.Layer(
     "ScatterplotLayer",
     data=df,
     get_position="[Longitude, Latitude]",
     get_color="color",
-    get_radius=60000,
+    get_radius="adjusted_radius",
     pickable=True,
 )
 
-# View settings
 view_state = pdk.ViewState(
     latitude=df["Latitude"].mean(),
     longitude=df["Longitude"].mean(),
-    zoom=1,
+    zoom=1.3,
     pitch=0,
 )
 
@@ -55,10 +56,25 @@ st.pydeck_chart(pdk.Deck(
     tooltip={"text": "Base: {Base}\nCountry: {Country}\nReadiness: {Readiness}"}
 ))
 
-# Smart insights
+# Insights
 st.subheader("📊 Readiness Quartile Summary")
-st.markdown(f"- 🟥 **Q1 (≤ {q1:.1f})** – Critically low readiness")
-st.markdown(f"- 🟧 **Q2 (≤ {q2:.1f})** – Below average")
-st.markdown(f"- 🟨 **Q3 (≤ {q3:.1f})** – Above average")
-st.markdown("- 🟩 **Q4 (> Q3)** – Highest readiness")
-st.markdown("Color trends can help prioritize global interventions and identify top-performing regions.")
+st.markdown(f"- 🟥 Q1 (≤ {q1:.1f}) – Critically low readiness")
+st.markdown(f"- 🟧 Q2 (≤ {q2:.1f}) – Below average")
+st.markdown(f"- 🟨 Q3 (≤ {q3:.1f}) – Above average")
+st.markdown("- 🟩 Q4 (> Q3) – Highest readiness")
+
+st.subheader("🧠 Smart Pattern Detection")
+high_df = df[df["Readiness"] >= q3]
+low_df = df[df["Readiness"] <= q1]
+top_countries = high_df["Country"].value_counts().head(3)
+bottom_countries = low_df["Country"].value_counts().head(3)
+
+st.markdown("**Top Countries with High Readiness Bases:**")
+for country, count in top_countries.items():
+    st.markdown(f"- 🟩 {country}: {count} base(s) in Q4")
+
+st.markdown("**Countries with Most Critically Low Readiness Bases:**")
+for country, count in bottom_countries.items():
+    st.markdown(f"- 🟥 {country}: {count} base(s) in Q1")
+
+st.markdown("**Observation:** These patterns may indicate strengths or systemic vulnerabilities in specific regions. Use these trends to inform strategic interventions.")
